@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#1f3d2b">
+  <title>Amigo Secreto</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23b3261e'/%3E%3Crect x='14' y='28' width='36' height='26' rx='4' fill='%23f6e7c1'/%3E%3Crect x='29' y='28' width='6' height='26' fill='%23b3261e'/%3E%3Crect x='10' y='20' width='44' height='10' rx='3' fill='%23f6e7c1'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- ===================== ORGANIZADOR ===================== -->
+  <section id="view-org" class="view">
+    <header class="hero">
+      <div class="hero-icon">🎁</div>
+      <h1 id="org-title">Amigo Secreto</h1>
+      <p class="sub">Organizador</p>
+    </header>
+
+    <div class="content">
+      <div class="card">
+        <p class="eyebrow">Evento</p>
+        <label class="field"><span>Nome</span><input type="text" id="ev-title" placeholder="Amigo Secreto da Família" maxlength="40"></label>
+        <label class="field"><span>Data da troca</span><input type="date" id="ev-date"></label>
+        <label class="field"><span>Valor sugerido</span><input type="text" id="ev-value" placeholder="R$ 100" maxlength="20"></label>
+        <label class="check"><input type="checkbox" id="ev-family" checked> Ninguém tira alguém da própria família</label>
+      </div>
+
+      <div class="card">
+        <p class="eyebrow">Participantes <span id="p-count" class="count"></span></p>
+        <div class="add-row">
+          <input type="text" id="p-name" placeholder="Nome" maxlength="24">
+          <input type="text" id="p-family" list="families" placeholder="Família" maxlength="24">
+          <datalist id="families"></datalist>
+        </div>
+        <div class="add-row">
+          <select id="p-resp"><option value="">Adulto (escaneia o próprio QR)</option></select>
+          <button class="btn" id="p-add">Adicionar</button>
+        </div>
+        <p class="hint">Criança: escolha o responsável. O QR dela aparece junto com o do responsável, que tira e compra por ela.</p>
+        <div class="plist" id="plist"></div>
+      </div>
+
+      <div class="row">
+        <button class="btn primary big" id="draw">🎲 Sortear</button>
+      </div>
+      <div class="card result" id="result-card" hidden>
+        <p class="eyebrow">Sorteio feito <span id="result-when" class="count"></span></p>
+        <p>Os QRs estão prontos. Mostre um por um: cada pessoa escaneia com a câmera do celular e vê quem tirou. Você não vê o resultado.</p>
+        <div class="row">
+          <button class="btn primary" id="show-start">📱 Mostrar QRs um por um</button>
+          <button class="btn ghost" id="show-list">Lista de QRs</button>
+        </div>
+        <div class="row">
+          <button class="btn ghost small" id="redraw">Refazer sorteio</button>
+          <button class="btn ghost small" id="share-setup">Copiar link de configuração</button>
+        </div>
+      </div>
+      <p class="hint center">Tudo roda neste aparelho. Nada é enviado para servidor. Se limpar os dados do navegador, o sorteio se perde: faça pela "Lista de QRs" o envio por WhatsApp para quem faltou.</p>
+    </div>
+  </section>
+
+  <!-- ===================== MOSTRAR UM POR UM ===================== -->
+  <section id="view-show" class="view show">
+    <header class="bar">
+      <button class="bar-btn" data-go="org" aria-label="Voltar">‹</button>
+      <h2 id="show-counter"></h2>
+      <span class="bar-spacer"></span>
+    </header>
+    <div class="show-inner">
+      <p class="show-turn">Vez de</p>
+      <h1 class="show-name" id="show-name"></h1>
+      <p class="show-resp" id="show-resp"></p>
+      <div class="qr-wrap" id="show-qr"></div>
+      <p class="show-help">Aponte a câmera do celular para o QR e abra o link.</p>
+      <div class="row center">
+        <button class="btn ghost" id="show-prev">‹ Anterior</button>
+        <button class="btn primary" id="show-next">Próximo ›</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== LISTA DE QRS ===================== -->
+  <section id="view-list" class="view">
+    <header class="bar">
+      <button class="bar-btn" data-go="org" aria-label="Voltar">‹</button>
+      <h2>Lista de QRs</h2>
+      <span class="bar-spacer"></span>
+    </header>
+    <div class="content">
+      <p class="hint">Para quem faltou ou perdeu o link: abra o QR da pessoa aqui, ou envie por WhatsApp. O link é o segredo: não abra o da pessoa nem olhe o resultado.</p>
+      <div class="qlist" id="qlist"></div>
+    </div>
+  </section>
+
+  <!-- ===================== REVELAÇÃO (quem escaneou) ===================== -->
+  <section id="view-reveal" class="view reveal">
+    <div class="reveal-inner">
+      <p class="reveal-event" id="rv-event"></p>
+      <h1 class="reveal-who" id="rv-who"></h1>
+      <p class="reveal-sub" id="rv-sub">Você tirou…</p>
+      <button class="gift" id="rv-gift" aria-label="Revelar">
+        <span class="gift-lid"></span>
+        <span class="gift-box">🎁</span>
+        <span class="gift-tap">toque para abrir</span>
+      </button>
+      <div class="reveal-name" id="rv-name" hidden></div>
+      <p class="reveal-meta" id="rv-meta"></p>
+      <p class="hint center" id="rv-hint" hidden>Guarde este link: ele mostra de novo quando quiser. Não compartilhe.</p>
+      <p class="hint center" id="rv-error" hidden></p>
+    </div>
+  </section>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="qrcode.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
