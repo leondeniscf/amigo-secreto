@@ -52,6 +52,12 @@
           <button class="btn primary" id="show-start">📱 Mostrar QRs um por um</button>
           <button class="btn ghost" id="show-list">Lista de QRs</button>
         </div>
+        <div class="board" id="board">
+          <p class="eyebrow">Cartinhas <span class="count" id="board-count"></span></p>
+          <p class="hint">Só mostra quem já escreveu, nunca o conteúdo. Cutuque quem falta.</p>
+          <div class="list" id="board-list"></div>
+          <div class="row"><button class="btn ghost small" id="board-refresh">Atualizar</button></div>
+        </div>
         <div class="row">
           <button class="btn ghost small" id="redraw">Refazer sorteio</button>
           <button class="btn ghost small" id="share-setup">Copiar link de configuração</button>
@@ -109,6 +115,43 @@
       <p class="reveal-meta" id="rv-meta"></p>
       <p class="hint center" id="rv-hint" hidden>Guarde este link: ele mostra de novo quando quiser. Não compartilhe.</p>
       <p class="hint center" id="rv-error" hidden></p>
+
+      <div id="wish-area" hidden>
+        <p class="countdown" id="rv-countdown"></p>
+
+        <div class="wcard">
+          <p class="eyebrow">A cartinha de <span id="w-their-name"></span></p>
+          <div id="w-their" class="w-their"><p class="hint">Carregando…</p></div>
+        </div>
+
+        <div class="wcard">
+          <p class="eyebrow">Bilhete para quem você tirou <span class="hint">· anônimo</span></p>
+          <div class="notes" id="n-out"></div>
+          <div class="note-row"><input type="text" id="n-out-text" placeholder="Ex.: prefere azul ou verde?" maxlength="300"><button class="btn primary" id="n-out-send">Enviar</button></div>
+        </div>
+
+        <div class="wcard mine">
+          <p class="eyebrow">Minha cartinha <span class="hint" id="w-mine-status"></span></p>
+          <p class="hint">Para quem tirou você. Curta e sincera: é o que faz o presente acertar.</p>
+          <p class="wlabel">🎁 Eu quero muito (até 3)</p>
+          <div class="want-row"><select class="want-cat"></select><input type="text" class="want-text" placeholder="Ex.: um livro de receitas" maxlength="120"></div>
+          <div class="want-row"><select class="want-cat"></select><input type="text" class="want-text" placeholder="Ex.: meias divertidas" maxlength="120"></div>
+          <div class="want-row"><select class="want-cat"></select><input type="text" class="want-text" placeholder="Ex.: qualquer coisa de café" maxlength="120"></div>
+          <p class="wlabel">📏 Meu tamanho e minhas cores</p>
+          <input type="text" id="w-sizes" placeholder="Ex.: camisa M, calçado 38, adoro verde e detesto rosa" maxlength="200">
+          <p class="wlabel">🚫 Nem pensar</p>
+          <input type="text" id="w-avoid" placeholder="Ex.: perfume, chocolate branco, caneca (já tenho 30)" maxlength="200">
+          <p class="wlabel">💡 Uma dica sobre mim</p>
+          <input type="text" id="w-tip" placeholder="Ex.: ando viciado em plantas" maxlength="200">
+          <div class="row center"><button class="btn primary" id="w-save">Salvar cartinha</button></div>
+        </div>
+
+        <div class="wcard">
+          <p class="eyebrow">Bilhetes do seu amigo secreto <span class="hint">· você não sabe quem é</span></p>
+          <div class="notes" id="n-in"></div>
+          <div class="note-row"><input type="text" id="n-in-text" placeholder="Responder sem saber quem é…" maxlength="300"><button class="btn primary" id="n-in-send">Enviar</button></div>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -116,5 +159,6 @@
 
   <script src="qrcode.js"></script>
   <script src="app.js"></script>
+  <script type="module" src="wish.js"></script>
 </body>
 </html>

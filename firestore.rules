@@ -1,0 +1,61 @@
+rules_version = '2';
+// ===============================================================
+// Modelo de dados (acesso sem login, por identificadores não adivinháveis)
+//
+// events/{eventId}/wishes/{wid}
+//   eventId = hash do segredo do sorteio; wid = hash(segredo | nome da pessoa)
+//   { wants: [ {cat: string<=20, text: string<=120} ] (até 3),
+//     sizes: string<=200, avoid: string<=200, tip: string<=200,
+//     updatedAt: timestamp (== request.time) }
+//   Lido por quem tem o link da pessoa ou de quem a tirou. Sem listagem.
+//
+// events/{eventId}/notes/{wid}/items/{noteId}
+//   bilhetes anônimos entre quem tirou ("giver") e a pessoa ("receiver")
+//   { from: 'giver'|'receiver', text: string 1..300, at: timestamp (== request.time) }
+//   Só criação; nunca edita nem apaga.
+// ===============================================================
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function okStr(v, max) {
+      return v is string && v.size() <= max;
+    }
+    function wantOk(w) {
+      return w is map && w.keys().hasOnly(['cat', 'text']) && w.keys().hasAll(['cat', 'text'])
+        && okStr(w.cat, 20) && okStr(w.text, 120);
+    }
+    function wishValid(d) {
+      return d.keys().hasOnly(['wants', 'sizes', 'avoid', 'tip', 'updatedAt'])
+        && d.keys().hasAll(['wants', 'sizes', 'avoid', 'tip', 'updatedAt'])
+        && d.wants is list && d.wants.size() <= 3
+        && (d.wants.size() < 1 || wantOk(d.wants[0]))
+        && (d.wants.size() < 2 || wantOk(d.wants[1]))
+        && (d.wants.size() < 3 || wantOk(d.wants[2]))
+        && okStr(d.sizes, 200) && okStr(d.avoid, 200) && okStr(d.tip, 200)
+        && d.updatedAt == request.time;
+    }
+    function noteValid(d) {
+      return d.keys().hasOnly(['from', 'text', 'at']) && d.keys().hasAll(['from', 'text', 'at'])
+        && d.from in ['giver', 'receiver']
+        && d.text is string && d.text.size() >= 1 && d.text.size() <= 300
+        && d.at == request.time;
+    }
+
+    match /events/{eventId}/wishes/{wid} {
+      allow get: if eventId.size() == 16 && wid.size() == 22;
+      allow list: if false;
+      allow create, update: if eventId.size() == 16 && wid.size() == 22 && wishValid(request.resource.data);
+      allow delete: if false;
+    }
+
+    match /events/{eventId}/notes/{wid}/items/{noteId} {
+      allow read: if eventId.size() == 16 && wid.size() == 22;
+      allow create: if eventId.size() == 16 && wid.size() == 22 && noteValid(request.resource.data);
+      allow update, delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

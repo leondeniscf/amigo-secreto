@@ -76,6 +76,8 @@
       $("#draw").textContent = draw ? "Sorteio feito ✓" : "🎲 Sortear";
       $("#result-card").hidden = !draw;
       if (draw) $("#result-when").textContent = new Date(draw.at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+      if (draw && !this._boardFor || (draw && this._boardFor !== draw.at)) { this._boardFor = draw?.at; Board.render(); }
+      if (!draw) $("#board").hidden = true;
     },
     saveEvent() {
       LS.set("event", { title: $("#ev-title").value.trim(), date: $("#ev-date").value, value: $("#ev-value").value.trim(), noFamily: $("#ev-family").checked });
@@ -129,18 +131,19 @@
     const pairs = makeDraw(people, ev.noFamily !== false);
     if (!pairs) return toast("Não há combinação possível com essas regras. Desmarque a regra de família ou ajuste a lista.");
     const byId = Object.fromEntries(people.map((p) => [p.id, p]));
+    const secret = b64u.enc(crypto.getRandomValues(new Uint8Array(16)));
     const items = [];
     for (const [g, r] of pairs) {
       const giver = byId[g], recv = byId[r];
       const resp = giver.resp ? byId[giver.resp] : null;
-      const token = await seal({ g: giver.name, r: recv.name, rf: recv.family || "", resp: resp?.name || "", ev: { title: ev.title, date: ev.date, value: ev.value } });
+      const token = await seal({ g: giver.name, r: recv.name, rf: recv.family || "", resp: resp?.name || "", s: secret, ev: { title: ev.title, date: ev.date, value: ev.value } });
       items.push({ id: giver.id, name: giver.name, resp: resp?.name || "", url: `${BASE}#t=${token}` });
     }
     // ordem de apresentação: responsável seguido das crianças dele
     const order = [];
     for (const p of people) { if (p.resp) continue; order.push(p.id); people.filter((c) => c.resp === p.id).forEach((c) => order.push(c.id)); }
     items.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
-    LS.set("draw", { at: Date.now(), items });
+    LS.set("draw", { at: Date.now(), secret, items });
     toast("Sorteio feito. Você não vê o resultado: só quem escanear.");
     Org.render();
   });
@@ -195,6 +198,97 @@
     Show.i = Number(b.dataset.show); go("show"); Show.render();
   });
 
+  const wishReady = new Promise((res) => { if (window.Wish) res(); else window.addEventListener("wish-ready", res, { once: true }); });
+  const CATS = [["🎁", "surpresa"], ["📚", "livro"], ["👕", "roupa"], ["🎮", "jogo"], ["🍫", "comida"], ["🧴", "cosmético"], ["🎧", "eletrônico"], ["🏠", "casa"], ["🌱", "planta"], ["⚽", "esporte"]];
+  const catEmoji = (id) => (CATS.find((c) => c[1] === id) || CATS[0])[0];
+  const fmtTime = (ts) => ts?.toDate ? ts.toDate().toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "";
+  const daysUntil = (iso) => { if (!iso) return null; const d = new Date(iso + "T00:00:00"); return Math.ceil((d - new Date()) / 86400000); };
+
+  // ---------- cartinha e bilhetes (na tela de revelação) ----------
+  const WishUI = {
+    unsubs: [],
+    stop() { this.unsubs.forEach((u) => u && u()); this.unsubs = []; },
+    async start(data) {
+      await wishReady;
+      const W = window.Wish;
+      const secret = W.secretFor(data);
+      const mine = await W.ids(secret, data.g), theirs = await W.ids(secret, data.r);
+      const eventId = mine.eventId;
+      $("#wish-area").hidden = false;
+      const days = daysUntil(data.ev?.date);
+      $("#rv-countdown").textContent = days == null ? "" : days > 1 ? `Faltam ${days} dias para a troca 🎄` : days === 1 ? "A troca é amanhã! 🎄" : days === 0 ? "A troca é hoje! 🎄" : "A troca já passou. Valeu! 🎄";
+      $("#w-their-name").textContent = data.r;
+      $$(".want-cat").forEach((sel) => { sel.innerHTML = CATS.map(([e, id]) => `<option value="${id}">${e}</option>`).join(""); });
+
+      // cartinha da pessoa que eu tirei
+      this.unsubs.push(W.watchWish(eventId, theirs.wid, (w, err) => {
+        const el = $("#w-their");
+        if (err) { el.innerHTML = `<p class="hint">Não consegui carregar agora.</p>`; return; }
+        if (!w) { el.innerHTML = `<p class="hint">${esc(data.r)} ainda não escreveu a cartinha. Mande um bilhete pedindo!</p>`; return; }
+        el.innerHTML = (w.wants || []).map((x) => `<div class="want"><span class="cat">${catEmoji(x.cat)}</span><span>${esc(x.text)}</span></div>`).join("")
+          + (w.sizes ? `<p class="wmeta"><b>Tamanho e cores:</b> ${esc(w.sizes)}</p>` : "")
+          + (w.avoid ? `<p class="wmeta"><b>Nem pensar:</b> ${esc(w.avoid)}</p>` : "")
+          + (w.tip ? `<p class="wmeta"><b>Dica:</b> ${esc(w.tip)}</p>` : "")
+          + (!w.wants?.length && !w.sizes && !w.avoid && !w.tip ? `<p class="hint">Cartinha em branco por enquanto.</p>` : "");
+      }));
+
+      // minha cartinha
+      this.unsubs.push(W.watchWish(eventId, mine.wid, (w) => {
+        if (!w || document.activeElement?.closest(".wcard.mine")) { if (!w) $("#w-mine-status").textContent = "· ainda não salva"; return; }
+        $$(".want-row").forEach((row, i) => { const x = w.wants?.[i]; row.querySelector(".want-cat").value = x?.cat || "surpresa"; row.querySelector(".want-text").value = x?.text || ""; });
+        $("#w-sizes").value = w.sizes || ""; $("#w-avoid").value = w.avoid || ""; $("#w-tip").value = w.tip || "";
+        $("#w-mine-status").textContent = w.updatedAt ? `· salva em ${fmtTime(w.updatedAt)}` : "· salva";
+      }));
+      $("#w-save").onclick = async () => {
+        const wants = $$(".want-row").map((row) => ({ cat: row.querySelector(".want-cat").value, text: row.querySelector(".want-text").value }));
+        try { await W.saveWish(eventId, mine.wid, { wants, sizes: $("#w-sizes").value, avoid: $("#w-avoid").value, tip: $("#w-tip").value }); toast("Cartinha salva. Quem tirou você já pode ver."); }
+        catch (e) { toast("Não consegui salvar. Tente de novo."); }
+      };
+
+      // bilhetes: para quem eu tirei (eu sou "giver" no fio da pessoa) e do meu amigo secreto (eu sou "receiver" no meu fio)
+      const renderNotes = (el, notes, meFrom) => {
+        el.innerHTML = notes.map((n) => `<div class="note ${n.from === meFrom ? "me" : "them"}">${esc(n.text)}<small>${fmtTime(n.at)}</small></div>`).join("");
+        el.scrollTop = el.scrollHeight;
+      };
+      this.unsubs.push(W.watchNotes(eventId, theirs.wid, (notes) => renderNotes($("#n-out"), notes, "giver")));
+      this.unsubs.push(W.watchNotes(eventId, mine.wid, (notes) => renderNotes($("#n-in"), notes, "receiver")));
+      const send = async (inputSel, wid, from) => {
+        const inp = $(inputSel); const text = inp.value.trim(); if (!text) return;
+        try { await W.sendNote(eventId, wid, from, text); inp.value = ""; } catch { toast("Não consegui enviar."); }
+      };
+      $("#n-out-send").onclick = () => send("#n-out-text", theirs.wid, "giver");
+      $("#n-in-send").onclick = () => send("#n-in-text", mine.wid, "receiver");
+      $("#n-out-text").onkeydown = (e) => { if (e.key === "Enter") $("#n-out-send").click(); };
+      $("#n-in-text").onkeydown = (e) => { if (e.key === "Enter") $("#n-in-send").click(); };
+    },
+  };
+
+  // ---------- quadro das cartinhas (organizador) ----------
+  const Board = {
+    async render() {
+      const d = State.draw(), ev = State.event();
+      $("#board").hidden = !d;
+      if (!d) return;
+      $("#board-list").innerHTML = `<p class="hint">Consultando…</p>`;
+      await wishReady;
+      const W = window.Wish;
+      const secret = d.secret || W.secretFor({ ev });
+      let done = 0;
+      const rows = [];
+      for (const it of d.items) {
+        const { eventId, wid } = await W.ids(secret, it.name);
+        let ok = false;
+        try { ok = !!(await W.getWish(eventId, wid)); } catch {}
+        if (ok) done++;
+        const msg = encodeURIComponent(`🎁 ${ev.title || "Amigo Secreto"}: ${it.name}, sua cartinha ainda está em branco! Abra seu link secreto e escreva o que quer ganhar.`);
+        rows.push(`<div class="b-item"><span class="${ok ? "ok" : "no"}">${ok ? "✓" : "–"}</span><span>${esc(it.name)}${it.resp ? ` <span class="hint">· com ${esc(it.resp)}</span>` : ""}</span>${ok ? "" : `<a class="wa" href="https://wa.me/?text=${msg}" target="_blank" rel="noopener">cutucar</a>`}</div>`);
+      }
+      $("#board-count").textContent = `${done} de ${d.items.length}`;
+      $("#board-list").innerHTML = rows.join("");
+    },
+  };
+  $("#board-refresh").addEventListener("click", () => Board.render());
+
   // ---------- revelação ----------
   const Reveal = {
     async open(token) {
@@ -215,6 +309,7 @@
           const n = $("#rv-name"); n.textContent = data.r; n.hidden = false;
           $("#rv-sub").textContent = "Você tirou";
           $("#rv-hint").hidden = false;
+          WishUI.start(data).catch(() => toast("Cartinha indisponível no momento."));
         }, 1200);
       };
     },

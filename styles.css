@@ -107,3 +107,34 @@ p { margin: 0 0 .6em; }
 .toast { position: fixed; left: 50%; bottom: calc(24px + var(--safe-bottom)); transform: translateX(-50%) translateY(20px); background: var(--ink); color: #fff; padding: 10px 16px; border-radius: 12px; font-size: 14px; opacity: 0; pointer-events: none; transition: .2s; z-index: 50; max-width: 90vw; text-align: center; }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 .gift[hidden] { display: none; }
+
+/* ---------- cartinha e bilhetes ---------- */
+.countdown { color: var(--gold); font-weight: 800; font-size: 15px; margin: 6px 0 14px; }
+.wcard { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14); border-radius: var(--radius); padding: 14px; margin: 12px 0; text-align: left; }
+.wcard.mine { background: rgba(255,255,255,.95); color: var(--ink); }
+.wcard .eyebrow { color: var(--gold); }
+.wcard.mine .eyebrow { color: var(--ink-2); }
+.wcard.mine .hint { color: var(--ink-2); }
+.wlabel { font-weight: 700; margin: 12px 0 6px; font-size: 14px; }
+.want-row { display: flex; gap: 8px; margin-bottom: 8px; }
+.want-row select { width: 64px; flex: none; padding: 10px 6px; border-radius: 10px; border: 1.5px solid var(--line); background: #fff; font-size: 18px; text-align: center; }
+.want-row input, .wcard.mine > input { flex: 1; width: 100%; padding: 10px; border-radius: 10px; border: 1.5px solid var(--line); background: #fff; }
+.w-their .want { display: flex; gap: 10px; align-items: center; background: rgba(255,255,255,.1); border-radius: 12px; padding: 10px 12px; margin-bottom: 8px; font-size: 16px; }
+.w-their .want .cat { font-size: 22px; }
+.w-their .wmeta { margin: 10px 0 0; font-size: 14px; color: rgba(255,255,255,.85); }
+.w-their .wmeta b { color: var(--gold); }
+.notes { display: flex; flex-direction: column; gap: 6px; max-height: 260px; overflow: auto; margin-bottom: 8px; }
+.note { max-width: 85%; padding: 8px 12px; border-radius: 14px; font-size: 15px; line-height: 1.35; }
+.note.me { align-self: flex-end; background: var(--red); color: #fff; border-bottom-right-radius: 4px; }
+.note.them { align-self: flex-start; background: rgba(255,255,255,.92); color: var(--ink); border-bottom-left-radius: 4px; }
+.note small { display: block; font-size: 11px; opacity: .7; margin-top: 2px; }
+.note-row { display: flex; gap: 8px; }
+.note-row input { flex: 1; min-width: 0; padding: 10px 12px; border-radius: 12px; border: 1.5px solid rgba(255,255,255,.25); background: rgba(255,255,255,.95); color: var(--ink); }
+.note-row .btn { padding: 10px 14px; }
+.notes:empty::before { content: "Nenhum bilhete ainda."; color: rgba(255,255,255,.6); font-size: 13px; }
+.board { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+.board .list { display: grid; gap: 6px; }
+.b-item { display: flex; align-items: center; gap: 10px; background: #fff; border-radius: 12px; padding: 8px 12px; border: 1px solid var(--line); font-size: 15px; }
+.b-item .ok { color: #1f3d2b; font-weight: 700; }
+.b-item .no { color: var(--ink-2); }
+.b-item .wa { margin-left: auto; font-size: 12px; padding: 6px 10px; border-radius: 10px; background: #25d366; color: #fff; font-weight: 700; text-decoration: none; }
